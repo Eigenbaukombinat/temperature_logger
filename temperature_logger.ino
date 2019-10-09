@@ -38,8 +38,10 @@ const uint8_t percent[] = { 0b01100011, 0b01011100 };
 // VCC == 3.3V
 // GND == GND
 RTC_DS3231 rtc;
-//DS3231  rtc();
 
+// store the last minute, so we can save only one measurement every minute
+int last_minute = 0;
+int new_minute = 0;
 //
 // SD Card
 //
@@ -85,6 +87,7 @@ void setup() {
   //
   // start SD Card on cable select pin SD_CS
   SD.begin(SD_CS);
+
 }
 
 void loop() {
@@ -116,6 +119,8 @@ void loop() {
   display.printTime(now.hour(), now.minute());
   delay(2000);
 
+
+  int new_minute = now.minute();
   // format date time for logging
   sprintf(data, "%4d-%02d-%02d %02d:%02d:%02d", now.year(), now.month(), now.day(), now.hour(), now.minute(), now.second() );
    
@@ -132,7 +137,7 @@ void loop() {
 
   // open file and write content to sd-card
   file = SD.open("measure.txt", FILE_WRITE);
-  if(file) {
+  if(file && new_minute != last_minute) {
     // write data to sd card
     file.print(data);
     file.print(" ");
@@ -142,8 +147,9 @@ void loop() {
     file.println("%");
     file.flush();
     file.close();
+    last_minute = new_minute;
   }
-  else {
+  else if (!file) {
     // on error: display ERRR on display
     display.clear();
     display.print("ERRR");
